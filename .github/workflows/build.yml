@@ -11,22 +11,36 @@ jobs:
     runs-on: macos-14
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode 15.4
+      - name: Chọn phiên bản Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_15.4.app
           xcodebuild -version
 
-      - name: Create Xcode project
+      - name: Biên dịch Project Xcode
         run: |
-          mkdir -p ios/Aimlock.xcodeproj
+          # Tiến hành build Xcode thành file .app
+          # LƯU Ý: Thay "Aimlock.xcodeproj" và "Aimlock" bằng tên Project & Scheme thực tế của bạn
+          xcodebuild -project "Aimlock.xcodeproj" \
+                     -scheme "Aimlock" \
+                     -sdk iphoneos \
+                     -configuration Release \
+                     -derivedDataPath build \
+                     CODE_SIGN_IDENTITY="" \
+                     CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO
 
-          cat > ios/project.pbxproj <<'EOF'
-          // placeholder
-          EOF
-
-      - name: Build
+      - name: Đóng gói thành file IPA
         run: |
-          echo "Project generation needs to be configured"
+          mkdir -p Payload
+          # Tìm file .app vừa build ra và copy vào Payload
+          cp -r build/Build/Products/Release-iphoneos/*.app Payload/
+          zip -r Aimlock.ipa Payload
+
+      - name: Tải file IPA lên Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Aimlock-IPA
+          path: Aimlock.ipa
