@@ -18,16 +18,46 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode_15.4.app
 
-      - name: Create Native iOS Wrapper
+      - name: Create Native Xcode Project
         run: |
-          rm -rf ios AimlockApp
-          mkdir -p AimlockApp/Payload/Aimlock.app
-          
-          # Copy các file web vào thư mục app
-          cp -r index.html icon-192.png icon-512.png manifest.json AimlockApp/Payload/Aimlock.app/ 2>/dev/null || true
-          
-          # Tạo file Info.plist cơ bản cho iOS
-          cat <<'EOF' > AimlockApp/Payload/Aimlock.app/Info.plist
+          rm -rf NativeApp
+          mkdir -p NativeApp/Aimlock
+
+          # 1. Tạo file mã nguồn Swift chạy Webview
+          cat <<'EOF' > NativeApp/Aimlock/AppDelegate.swift
+          import UIKit
+          import WebKit
+
+          @main
+          class AppDelegate: UIResponder, UIApplicationDelegate {
+              var window: UIWindow?
+              func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+                  window = UIWindow(frame: UIScreen.main.bounds)
+                  let vc = UIViewController()
+                  let webView = WKWebView(frame: vc.view.bounds)
+                  if let htmlPath = Bundle.main.path(forResource: "index", ofType: "html") {
+                      let url = URL(fileURLWithPath: htmlPath)
+                      webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+                  }
+                  vc.view.addSubview(webView)
+                  window?.rootViewController = vc
+                  window?.makeKeyAndVisible()
+                  return true
+              }
+          }
+          EOF
+
+          # 2. Copy Web Assets vào app
+          cp index.html icon-192.png icon-512.png manifest.json NativeApp/Aimlock/ 2>/dev/null || true
+
+          # 3. Biên dịch file Swift ra Binary thực thi cho iOS
+          swiftc -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
+                 -target arm64-apple-ios15.0 \
+                 NativeApp/Aimlock/AppDelegate.swift \
+                 -o NativeApp/Aimlock/Aimlock
+
+          # 4. Tạo Info.plist
+          cat <<'EOF' > NativeApp/Aimlock/Info.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -52,8 +82,9 @@ jobs:
 
       - name: Package IPA
         run: |
-          cd AimlockApp
-          zip -r ../Aimlock.ipa Payload
+          mkdir -p Payload
+          cp -r NativeApp/Aimlock Payload/Aimlock.app
+          zip -r Aimlock.ipa Payload
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
