@@ -51,7 +51,8 @@ jobs:
           cp index.html icon-192.png icon-512.png manifest.json NativeApp/Aimlock/ 2>/dev/null || true
 
           # 3. Biên dịch file Swift ra Binary thực thi cho iOS
-          swiftc -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
+          swiftc -parse-as-library \
+                 -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
                  -target arm64-apple-ios15.0 \
                  NativeApp/Aimlock/AppDelegate.swift \
                  -o NativeApp/Aimlock/Aimlock
