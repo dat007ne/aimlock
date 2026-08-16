@@ -18,12 +18,17 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode_15.4.app
 
-      - name: Create Native Xcode Project
+      - name: Inject CSS Fix & Create Native Project
         run: |
           rm -rf NativeApp
           mkdir -p NativeApp/Aimlock
 
-          # 1. Tạo file mã nguồn Swift chạy Webview
+          # 1. Thêm CSS ẩn banner PWA
+          if [ -f index.html ]; then
+            sed -i '' 's|</head>|<style>button:contains("PWA"), [class*="pwa"], [id*="pwa"] { display: none !important; }</style></head>|g' index.html 2>/dev/null || true
+          fi
+
+          # 2. Tạo file AppDelegate.swift
           cat <<'EOF' > NativeApp/Aimlock/AppDelegate.swift
           import UIKit
           import WebKit
@@ -34,11 +39,14 @@ jobs:
               func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
                   window = UIWindow(frame: UIScreen.main.bounds)
                   let vc = UIViewController()
-                  let webView = WKWebView(frame: vc.view.bounds)
+                  let config = WKWebViewConfiguration()
+                  let webView = WKWebView(frame: vc.view.bounds, configuration: config)
+                  
                   if let htmlPath = Bundle.main.path(forResource: "index", ofType: "html") {
                       let url = URL(fileURLWithPath: htmlPath)
                       webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
                   }
+                  
                   vc.view.addSubview(webView)
                   window?.rootViewController = vc
                   window?.makeKeyAndVisible()
@@ -47,17 +55,17 @@ jobs:
           }
           EOF
 
-          # 2. Copy Web Assets vào app
+          # 3. Copy tài nguyên vào dự án
           cp index.html icon-192.png icon-512.png manifest.json NativeApp/Aimlock/ 2>/dev/null || true
 
-          # 3. Biên dịch file Swift ra Binary thực thi cho iOS
+          # 4. Biên dịch file Swift
           swiftc -parse-as-library \
                  -sdk $(xcrun --sdk iphoneos --show-sdk-path) \
                  -target arm64-apple-ios15.0 \
                  NativeApp/Aimlock/AppDelegate.swift \
                  -o NativeApp/Aimlock/Aimlock
 
-          # 4. Tạo Info.plist
+          # 5. Tạo Info.plist
           cat <<'EOF' > NativeApp/Aimlock/Info.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
