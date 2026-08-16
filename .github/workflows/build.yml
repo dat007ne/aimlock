@@ -23,20 +23,23 @@ jobs:
         run: |
           rm -rf ios package.json package-lock.json www capacitor.config.json
           mkdir -p www
+          
+          # Copy tất cả các file web vào thư mục www
           cp -r index.html icon-192.png icon-512.png manifest.json www/ 2>/dev/null || true
           
-          npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/ios
-          
-          cat <<EOF > capacitor.config.json
-          {
-            "appId": "com.aimlock.app",
-            "appName": "Aimlock",
-            "webDir": "www",
-            "bundledWebRuntime": false
-          }
-          EOF
+          # Tạo file index.html dự phòng nếu chưa có
+          if [ ! -f www/index.html ]; then
+            echo '<!DOCTYPE html><html><head><title>Aimlock</title></head><body><h1>Aimlock App</h1></body></html>' > www/index.html
+          fi
 
+          # Khởi tạo NPM và cài đặt Capacitor
+          npm init -y
+          npm install @capacitor/core @capacitor/ios @capacitor/cli
+
+          # Tạo file cấu hình capacitor chuẩn
+          echo '{"appId":"com.aimlock.app","appName":"Aimlock","webDir":"www"}' > capacitor.config.json
+
+          # Thêm nền tảng iOS
           npx cap add ios
           npx cap sync ios
 
