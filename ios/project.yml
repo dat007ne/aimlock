@@ -1,0 +1,32 @@
+name: Aimlock
+
+options:
+  deploymentTarget:
+    iOS: "15.0"
+
+targets:
+  Aimlock:
+    type: application
+    platform: iOS
+
+    sources:
+      - path: App.swift
+      - path: WebView.swift
+
+    resources:
+      - path: ../index.html
+      - path: ../manifest.json
+      - path: ../icon-192.png
+      - path: ../icon-512.png
+
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.nguyendat.aimlock
+      PRODUCT_NAME: Aimlock
+      SWIFT_VERSION: "5.0"
+      TARGETED_DEVICE_FAMILY: "1,2"
+      INFOPLIST_KEY_CFBundleDisplayName: "Aimlock Nguyendat"
+      INFOPLIST_KEY_LSRequiresIPhoneOS: YES
+      INFOPLIST_KEY_UIStatusBarStyle: UIStatusBarStyleLightContent
+      INFOPLIST_KEY_UILaunchScreen_Generation: YES
+      CODE_SIGNING_ALLOWED: NO
+      CODE_SIGNING_REQUIRED: NO
