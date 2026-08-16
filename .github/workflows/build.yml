@@ -19,8 +19,9 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Capacitor & Wrap Web App
+      - name: Clean & Wrap Web App
         run: |
+          rm -rf ios package.json package-lock.json
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/ios
           npx cap init Aimlock com.aimlock.app --web-dir .
