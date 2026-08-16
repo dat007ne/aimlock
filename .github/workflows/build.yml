@@ -14,56 +14,46 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Prepare Web Assets & Install Capacitor
-        run: |
-          rm -rf ios package.json package-lock.json www capacitor.config.json
-          mkdir -p www
-          
-          # Copy tất cả các file web vào thư mục www
-          cp -r index.html icon-192.png icon-512.png manifest.json www/ 2>/dev/null || true
-          
-          # Tạo file index.html dự phòng nếu chưa có
-          if [ ! -f www/index.html ]; then
-            echo '<!DOCTYPE html><html><head><title>Aimlock</title></head><body><h1>Aimlock App</h1></body></html>' > www/index.html
-          fi
-
-          # Khởi tạo NPM và cài đặt Capacitor
-          npm init -y
-          npm install @capacitor/core @capacitor/ios @capacitor/cli
-
-          # Tạo file cấu hình capacitor chuẩn
-          echo '{"appId":"com.aimlock.app","appName":"Aimlock","webDir":"www"}' > capacitor.config.json
-
-          # Thêm nền tảng iOS
-          npx cap add ios
-          npx cap sync ios
-
       - name: Select Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_15.4.app
 
-      - name: Build Xcode Project
+      - name: Create Native iOS Wrapper
         run: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace \
-                     -scheme App \
-                     -sdk iphoneos \
-                     -configuration Release \
-                     -derivedDataPath build \
-                     CODE_SIGN_IDENTITY="" \
-                     CODE_SIGNING_REQUIRED=NO \
-                     CODE_SIGNING_ALLOWED=NO
+          rm -rf ios AimlockApp
+          mkdir -p AimlockApp/Payload/Aimlock.app
+          
+          # Copy các file web vào thư mục app
+          cp -r index.html icon-192.png icon-512.png manifest.json AimlockApp/Payload/Aimlock.app/ 2>/dev/null || true
+          
+          # Tạo file Info.plist cơ bản cho iOS
+          cat <<'EOF' > AimlockApp/Payload/Aimlock.app/Info.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>Aimlock</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.aimlock.app</string>
+              <key>CFBundleName</key>
+              <string>Aimlock</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0</string>
+              <key>CFBundleVersion</key>
+              <string>1</string>
+              <key>LSRequiresIPhoneOS</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
 
       - name: Package IPA
         run: |
-          mkdir -p Payload
-          cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
-          zip -r Aimlock.ipa Payload
+          cd AimlockApp
+          zip -r ../Aimlock.ipa Payload
 
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
