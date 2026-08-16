@@ -14,17 +14,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Chọn phiên bản Xcode
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Capacitor & Wrap Web App
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/cli @capacitor/ios
+          npx cap init Aimlock com.aimlock.app --web-dir .
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Select Xcode 15.4
         run: |
           sudo xcode-select -s /Applications/Xcode_15.4.app
-          xcodebuild -version
 
-      - name: Biên dịch Project Xcode
+      - name: Build Xcode Project
         run: |
-          # Tiến hành build Xcode thành file .app
-          # LƯU Ý: Thay "Aimlock.xcodeproj" và "Aimlock" bằng tên Project & Scheme thực tế của bạn
-          xcodebuild -project "Aimlock.xcodeproj" \
-                     -scheme "Aimlock" \
+          cd ios/App
+          xcodebuild -workspace App.xcworkspace \
+                     -scheme App \
                      -sdk iphoneos \
                      -configuration Release \
                      -derivedDataPath build \
@@ -32,14 +43,13 @@ jobs:
                      CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGNING_ALLOWED=NO
 
-      - name: Đóng gói thành file IPA
+      - name: Package IPA
         run: |
           mkdir -p Payload
-          # Tìm file .app vừa build ra và copy vào Payload
-          cp -r build/Build/Products/Release-iphoneos/*.app Payload/
+          cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/
           zip -r Aimlock.ipa Payload
 
-      - name: Tải file IPA lên Artifacts
+      - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Aimlock-IPA
