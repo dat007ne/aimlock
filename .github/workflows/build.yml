@@ -19,16 +19,28 @@ jobs:
         with:
           node-version: 20
 
-      - name: Clean & Wrap Web App
+      - name: Prepare Web Assets & Install Capacitor
         run: |
-          rm -rf ios package.json package-lock.json
+          rm -rf ios package.json package-lock.json www capacitor.config.json
+          mkdir -p www
+          cp -r index.html icon-192.png icon-512.png manifest.json www/ 2>/dev/null || true
+          
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/ios
-          npx cap init Aimlock com.aimlock.app --web-dir .
+          
+          cat <<EOF > capacitor.config.json
+          {
+            "appId": "com.aimlock.app",
+            "appName": "Aimlock",
+            "webDir": "www",
+            "bundledWebRuntime": false
+          }
+          EOF
+
           npx cap add ios
           npx cap sync ios
 
-      - name: Select Xcode 15.4
+      - name: Select Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_15.4.app
 
